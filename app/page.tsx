@@ -10,17 +10,18 @@ export default async function Home() {
   ]);
 
   return (
-    <main>
+    <main style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{
+        height: '50vh',
         background: 'linear-gradient(180deg, #ffffff 0%, #f5f5f7 100%)',
-        borderBottom: '1px solid var(--border)'
+        borderBottom: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
-        <header className="container" style={{ 
-          padding: '80px 32px 60px',
-          textAlign: 'center'
-        }}>
-          <h1 style={{ 
-            fontSize: '64px', 
+        <header className="container" style={{ padding: '0 32px', textAlign: 'center' }}>
+          <h1 style={{
+            fontSize: 'clamp(32px, 5vw, 64px)',
             marginBottom: '20px',
             fontWeight: 700,
             letterSpacing: '-0.03em',
@@ -28,24 +29,24 @@ export default async function Home() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             lineHeight: 1.1,
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}>
             Discover Premium Products
           </h1>
-          <p style={{ 
-            color: 'var(--text-secondary)', 
-            fontSize: '20px',
-            fontWeight: 400,
+          <p style={{
+            color: 'var(--text-secondary)',
+            fontSize: 'clamp(14px, 2vw, 20px)',
             maxWidth: '600px',
             margin: '0 auto',
             lineHeight: 1.5,
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}>
             Explore our carefully curated collection of {products.length} exceptional items
           </p>
         </header>
       </div>
-      <ProductList initialProducts={products} categories={categories} />
+
+      <ProductList initialProducts={products} categories={categories} pageSize={8} />
     </main>
   );
 }

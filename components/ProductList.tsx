@@ -1,77 +1,87 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Product } from '../types/products';
 import ProductCard from './ProductCard';
 
 interface Props {
   initialProducts: Product[];
   categories: string[];
+  pageSize?: number;
 }
 
-export default function ProductList({ initialProducts, categories }: Props) {
+export default function ProductList({ initialProducts, categories, pageSize = 8 }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [visibleCount, setVisibleCount] = useState(pageSize);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...initialProducts];
-
     if (selectedCategory !== 'all') {
       result = result.filter(p => p.category === selectedCategory);
     }
-
-    result.sort((a, b) => 
+    result.sort((a, b) =>
       sortOrder === 'asc' ? a.price - b.price : b.price - a.price
     );
-
     return result;
   }, [initialProducts, selectedCategory, sortOrder]);
 
+  useEffect(() => {
+    setVisibleCount(pageSize);
+  }, [selectedCategory, sortOrder, pageSize]);
+
+  const visibleProducts = filteredAndSortedProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredAndSortedProducts.length;
+
+  const loadMore = useCallback(() => {
+    setVisibleCount(c => Math.min(c + pageSize, filteredAndSortedProducts.length));
+  }, [pageSize, filteredAndSortedProducts.length]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    const el = loaderRef.current;
+    if (el) observer.observe(el);
+    return () => { if (el) observer.unobserve(el); };
+  }, [hasMore, loadMore]);
+
   return (
-    <div className="container" style={{ padding: '60px 32px 100px' }}>
-      <div style={{ 
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* Filter bar */}
+      <div className="container" style={{
         display: 'flex',
-        gap: '16px', 
-        marginBottom: '56px',
+        gap: '16px',
         flexWrap: 'wrap',
         alignItems: 'center',
         background: 'var(--surface)',
-        padding: '24px',
-        borderRadius: '16px',
-        boxShadow: 'var(--shadow-sm)',
-        border: '1px solid var(--border)'
+        padding: '16px 32px',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
       }}>
-        <div style={{ flex: 1, minWidth: '200px' }}>
+        <div style={{ flex: 1, minWidth: '160px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <label style={{
-            display: 'block',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            marginBottom: '8px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            Category
-          </label>
+            fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+          }}>Category</label>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             style={{
-              width: '100%',
-              padding: '14px 44px 14px 16px',
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: '10px',
-              color: 'var(--text)',
-              fontSize: '15px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              appearance: 'none',
+              flex: 1, padding: '8px 36px 8px 12px',
+              background: 'var(--bg)', border: '1px solid var(--border)',
+              borderRadius: '8px', color: 'var(--text)', fontSize: '14px',
+              fontWeight: 500, cursor: 'pointer', appearance: 'none',
               backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'14\' height=\'8\' viewBox=\'0 0 14 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L7 7L13 1\' stroke=\'%23666666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 16px center',
-              transition: 'all 0.2s'
+              backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
             }}
           >
             <option value="all">All Categories</option>
@@ -83,36 +93,21 @@ export default function ProductList({ initialProducts, categories }: Props) {
           </select>
         </div>
 
-        <div style={{ flex: 1, minWidth: '200px' }}>
+        <div style={{ flex: 1, minWidth: '160px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <label style={{
-            display: 'block',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            marginBottom: '8px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            Sort By
-          </label>
+            fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+          }}>Sort</label>
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
             style={{
-              width: '100%',
-              padding: '14px 44px 14px 16px',
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: '10px',
-              color: 'var(--text)',
-              fontSize: '15px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              appearance: 'none',
+              flex: 1, padding: '8px 36px 8px 12px',
+              background: 'var(--bg)', border: '1px solid var(--border)',
+              borderRadius: '8px', color: 'var(--text)', fontSize: '14px',
+              fontWeight: 500, cursor: 'pointer', appearance: 'none',
               backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'14\' height=\'8\' viewBox=\'0 0 14 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L7 7L13 1\' stroke=\'%23666666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 16px center',
-              transition: 'all 0.2s'
+              backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
             }}
           >
             <option value="asc">Price: Low to High</option>
@@ -120,42 +115,47 @@ export default function ProductList({ initialProducts, categories }: Props) {
           </select>
         </div>
 
-        <div style={{
-          flex: 1,
-          minWidth: '200px',
-          textAlign: 'right'
-        }}>
-          <label style={{
-            display: 'block',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            marginBottom: '8px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            Results
-          </label>
-          <div style={{ 
-            fontSize: '28px',
-            fontWeight: 700,
-            color: 'var(--text)',
-            lineHeight: 1
-          }}>
-            {filteredAndSortedProducts.length}
-          </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            {visibleProducts.length} / {filteredAndSortedProducts.length} items
+          </span>
         </div>
       </div>
 
-      <div style={{
+      {/* Product grid */}
+      <div className="container" style={{
+        padding: '20px 32px 40px',
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '24px'
+        gap: '16px',
       }}>
-        {filteredAndSortedProducts.map((product, index) => (
+        {visibleProducts.map((product, index) => (
           <ProductCard key={product.id} product={product} index={index} />
         ))}
       </div>
+
+      {/* Sentinel */}
+      <div ref={loaderRef} style={{ padding: '32px', textAlign: 'center' }}>
+        {hasMore ? (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            color: 'var(--text-secondary)', fontSize: '14px',
+          }}>
+            <div style={{
+              width: '18px', height: '18px', borderRadius: '50%',
+              border: '2px solid var(--border)',
+              borderTopColor: 'var(--text)',
+              animation: 'spin 0.7s linear infinite',
+            }} />
+            Loading more...
+          </div>
+        ) : (
+          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+            You've seen all {filteredAndSortedProducts.length} products
+          </span>
+        )}
+      </div>
+
     </div>
   );
 }
